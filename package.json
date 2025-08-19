@@ -1,0 +1,16 @@
+{
+  "name": "playwright-demo-webshop-endava",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/dotenv": "^6.1.1",
+    "@types/node": "^24.2.1",
+    "dotenv": "^17.2.1"
+  }
+}
