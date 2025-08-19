@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { expect, Page } from "@playwright/test";
 
 interface User {
   firstName: string;
@@ -11,75 +11,113 @@ interface User {
 // Register a new user
 // ----------------------------
 export async function registerUser(page: Page, user: User) {
-  await page.goto('/register');
+  // Navigate to the registration page
+  await page.goto("/register");
 
-  // Fill personal details
-  await page.locator('#gender-male').check(); // or female
-  await page.locator('#FirstName').fill(user.firstName);
-  await page.locator('#LastName').fill(user.lastName);
-  await page.locator('#Email').fill(user.email);
+  // Fill in personal details
+  await page.locator("#gender-male").check(); // Select gender (male or female)
+  await page.locator("#FirstName").fill(user.firstName); // Enter first name
+  await page.locator("#LastName").fill(user.lastName); // Enter last name
+  await page.locator("#Email").fill(user.email); // Enter email address
 
-  // Fill password
-  await page.locator('#Password').fill(user.password);
-  await page.locator('#ConfirmPassword').fill(user.password);
+  // Fill in password fields
+  await page.locator("#Password").fill(user.password); // Enter password
+  await page.locator("#ConfirmPassword").fill(user.password); // Confirm password
 
-  // Submit registration
-  await page.locator('#register-button').click();
+  // Submit the registration form
+  await page.locator("#register-button").click();
 
-const errorLocator = page.locator('.message-error .validation-summary-errors li');
+  // Check for error messages (e.g., email already exists)
+  const errorLocator = page.locator(
+    ".message-error .validation-summary-errors li"
+  );
 
-if (await errorLocator.count() > 0) {
+  if ((await errorLocator.count()) > 0) {
     const errorMessage = await errorLocator.textContent();
-    if (errorMessage?.includes('The specified email already exists')) {
-        // Generate a new unique email
-        const timestamp = Date.now();
-        user.email = `test${Math.floor(Date.now() / 1000)}${Math.floor(Math.random()*1000)}@mail.com`;
-        console.log('Email exists, new email:', user.email);
-         await page.locator('#Email').fill(user.email);
-          await page.locator('#register-button').click();
-    }
-} else {
-    console.log('Email is available, continue test');
-}
 
-  // Verify registration success
-  await page.waitForSelector('text=Your registration completed');
+    if (errorMessage?.includes("The specified email already exists")) {
+      // Generate a unique email to avoid duplicate registration
+      const timestamp = Date.now();
+      user.email = `test${Math.floor(Date.now() / 1000)}${Math.floor(
+        Math.random() * 1000
+      )}@mail.com`;
+
+      // Update the email field and re-submit registration
+      await page.locator("#Email").fill(user.email);
+      await page.locator("#register-button").click();
+    }
+  } else {
+    // No errors, registration successful
+    return;
+  }
+
+  // Verify that registration was successful by checking for confirmation text
+  await expect(page.getByText("Your registration completed")).toBeVisible();
 }
 
 // ----------------------------
 // Login a user
 // ----------------------------
 export async function loginUser(page: Page, user: User) {
-  await page.goto('/login');
+  // Navigate to the login page
+  await page.goto("/login");
 
-  await page.locator('#Email').fill(user.email);
-  await page.locator('#Password').fill(user.password);
+  // Fill login credentials
+  await page.locator("#Email").fill(user.email);
+  await page.locator("#Password").fill(user.password);
+
+  // Submit the login form
   await page.locator('input[type="submit"][value="Log in"]').click();
 
-  // Verify login success (example: logout link visible)
-  await page.waitForSelector('text=Log out');
+  // Wait for logout link to appear to confirm successful login
+  await page.waitForSelector("text=Log out");
+
+  // Ensure login button is hidden (sanity check)
+  const loginBtn = page.locator(".ico-login");
+  await expect(loginBtn).toBeHidden();
 }
 
 // ----------------------------
 // Logout user
 // ----------------------------
 export async function logoutUser(page: Page) {
-  await page.locator('text=Log out').click();
-  await page.waitForSelector('text=Log in'); // back to login link
+  // Locate the logout button
+  const logoutBtn = page.locator(".ico-logout");
+
+  // Ensure the logout button is visible before clicking
+  await expect(logoutBtn).toBeVisible({ timeout: 60000 });
+
+  // Click the logout button
+  await logoutBtn.click();
+
+  // Wait for the login link to appear again to confirm successful logout
+  await page.waitForSelector("text=Log in");
+
+  // Ensure login button is visible again after logout
+  const loginBtn = page.locator(".ico-login");
+  await expect(loginBtn).toBeVisible();
 }
 
 // ----------------------------
 // Change password
 // ----------------------------
-export async function changePassword(page: Page, oldPassword: string, newPassword: string) {
-  await page.goto('/customer/changepassword');
+export async function changePassword(
+  page: Page,
+  oldPassword: string,
+  newPassword: string
+) {
+  // Navigate to the change password page
+  await page.goto("/customer/changepassword");
 
-  await page.locator('#OldPassword').fill(oldPassword);
-  await page.locator('#NewPassword').fill(newPassword);
-  await page.locator('#ConfirmNewPassword').fill(newPassword);
+  // Fill in the old and new passwords
+  await page.locator("#OldPassword").fill(oldPassword);
+  await page.locator("#NewPassword").fill(newPassword);
+  await page.locator("#ConfirmNewPassword").fill(newPassword);
 
-  await page.locator('input.button-1.change-password-button').click();
+  // Submit the change password form
+  await page.locator("input.button-1.change-password-button").click();
 
-  // Verify password change success
-  await page.waitForSelector('text=Password was changed');
+  // Verify that the password change was successful
+  await page.waitForSelector("text=Password was changed");
+  await expect(page.getByText("Password was changed")).toBeVisible();
 }
